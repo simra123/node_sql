@@ -1,173 +1,48 @@
-// const express = require("express");
-// const app = express();
-import pkg from "pg";
-const { Client } = pkg;
-// const bcrypt = require("bcryptjs");
-// const saltRounds = 10;
-// const jwt = require("jsonwebtoken");
+import Fastify from "fastify";
+import "dotenv/config";
+import { fileURLToPath } from "node:url";
+import { connectDb } from "./db/connect.js";
+import { initializeDatabase } from "./db/initialize.js";
+import { validateJwtEnv } from "./lib/auth.js";
+import authRoutes from "./routes/auth.js";
+import studentRoutes from "./routes/students.js";
 
-const client = new Client({
-	host: "localhost",
-	user: "postgres",
-	password: "password",
-	port: 3000,
-	database: "pratice1",
-});
-client.connect();
-// app.use(express.json());
+export function buildApp() {
+  const app = Fastify({ logger: true });
 
-// const getToken = (id, username) => {
-// 	const token = jwt.sign(
-// 		{ userId: id, name: username },
-// 		"MzEfYyjiWA4R4/M2bS1GB4t7NXp9",
-// 		{
-// 			expiresIn: "60",
-// 		}
-// 	);
-// 	return token;
-// };
+  app.get("/", async () => ({ message: "Student API is running" }));
+  app.register(authRoutes, { prefix: "/api/auth" });
+  app.register(studentRoutes, { prefix: "/api/students" });
 
-// app.post("/create-job", (req, res) => {
-// 	const { company, position, status } = req.body;
-// 	const string = `insert into jobs (company , position , status) values ($1 , $2 , $3)`;
-// 	if (!company || !position || !status) {
-// 		res.status(400).json({
-// 			code: 400,
-// 			message: "please fill all fields",
-// 		});
-// 	} else {
-// 		client.query(string, [company, position, status], (err, result) => {
-// 			if (err) {
-// 				res.send(err);
-// 			} else {
-// 				res.json({
-// 					code: 200,
-// 					message: "successfully created a new job",
-// 				});
-// 				console.log(result);
-// 			}
-// 		});
-// 	}
-// });
-// app.get("/jobs", (req, res) => {
-// 	const string = `select * from jobs `;
-// 	client.query(string, (err, result) => {
-// 		if (err) {
-// 			res.send(err);
-// 		} else {
-// 			res.status(200).json({
-// 				code: 200,
-// 				data: result.rows,
-// 			});
-// 		}
-// 	});
-// });
-// app.get("/jobs/:id", (req, res) => {
-// 	const { id } = req.params;
-// 	const string = `select * from jobs where id ='${id}'`;
+  app.setErrorHandler((error, request, reply) => {
+    request.log.error(error);
 
-// 	client.query(string, (err, result) => {
-// 		if (err) {
-// 			res.send(err);
-// 		} else {
-// 			res.status(200).json({
-// 				code: 200,
-// 				data: result.rows,
-// 			});
-// 		}
-// 	});
-// });
-// app.post("/jobs/delete", (req, res) => {
-// 	const { id } = req.body;
-// 	const string = `delete from jobs where id ='${id}'`;
-// 	client.query(string, (err, result) => {
-// 		if (err) {
-// 			res.send(err);
-// 		} else {
-// 			res.status(200).json({
-// 				code: 200,
-// 				message: "successfully deleted the job",
-// 			});
-// 		}
-// 	});
-// });
-// app.post("/register", (req, res) => {
-// 	const { name, email, password } = req.body;
-// 	const string = `insert into register (name , email , password) values ($1 , $2 , $3)`;
-// 	if (!name || !email || !password) {
-// 		res.status(400).json({
-// 			code: 400,
-// 			message: "please fill all fields",
-// 		});
-// 	} else {
-// 		bcrypt.hash(password, saltRounds, (err, hash) => {
-// 			client.query(string, [name, email, hash], (err, result) => {
-// 				if (err) {
-// 					res.send(err?.detail);
-// 				} else {
-// 					res.json({
-// 						code: 200,
-// 						message: "successfully registered",
-// 					});
-// 					console.log(result);
-// 				}
-// 			});
-// 		});
-// 	}
-// });
+    if (error.number === 2601 || error.number === 2627) {
+      return reply.code(409).send({ message: "Email is already in use" });
+    }
 
-// app.post("/login", (req, res) => {
-// 	const { email, password } = req.body;
-// 	const query = "select * from register where email = $1";
-// 	client.query(query, [email], (err, result) => {
-// 		if (result?.rows.length > 0) {
-// 			bcrypt.compare(password, result.rows[0].password, (error, response) => {
-// 				if (response) {
-// 					const token = getToken(result.rows[0].user_id, result.rows[0].name);
-// 					res.json({
-// 						code: 200,
-// 						message: "Login successfully",
-// 						token: token,
-// 					});
-// 				} else {
-// 					res.status(400).json({
-// 						code: 400,
-// 						message: "provided password is incorrect",
-// 					});
-// 				}
-// 			});
-// 		} else {
-// 			res.status(404).json({
-// 				code: 404,
-// 				message: "User doesnt exist",
-// 			});
-// 		}
-// 	});
-// });
-// app.listen(4000, (req, res) => {
-// 	console.log(`server is up and running`);
-// });
-import Fatisfy from "fastify";
-const fatisfy = Fatisfy();
+    return reply.code(500).send({ message: "Internal server error" });
+  });
 
-fatisfy.get("/", async (request, reply) => {
-	// const string = `select * from jobs `;
-	// await client.query(string, (err, result) => {
-	// 	if (err) {
-	// 		reply.send(err);
-	// 	} else {
-	// 		console.log(result.rows);
-	// 		return "hi";
-	// 	}
-	// });
-	reply.send([
-		{ name: 234 },
-		{ name: 234 },
-		{ name: 234 },
-		{ name: 234 },
-		{ name: 234 },
-	]);
-});
-fatisfy.listen(4000, () => {
-	console.log("server is running on fatisfy");
-});
+  return app;
+}
+
+async function start() {
+  try {
+    validateJwtEnv();
+    const pool = await connectDb();
+    await initializeDatabase(pool);
+
+    const app = buildApp();
+    const port = Number(process.env.PORT || 4000);
+    const host = process.env.HOST || "127.0.0.1";
+    await app.listen({ port, host });
+  } catch (error) {
+    console.error(error.message);
+    process.exitCode = 1;
+  }
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  start();
+}
