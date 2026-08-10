@@ -1,0 +1,108 @@
+{
+  "resource": "Category",
+  "baseUrl": "/api/categories",
+  "authentication": {
+    "requiredRole": "admin",
+    "header": "Authorization: Bearer <admin-token>"
+  },
+  "fields": {
+    "name": "Required string, 1-100 characters",
+    "description": "Optional string up to 500 characters, or null"
+  },
+  "endpoints": [
+    {
+      "name": "Create category",
+      "method": "POST",
+      "endpoint": "/api/categories",
+      "requestBody": {
+        "name": "Web Development",
+        "description": "Courses and resources about web development"
+      },
+      "successStatus": 201,
+      "successResponse": {
+        "category": {
+          "Id": 1,
+          "Name": "Web Development",
+          "Description": "Courses and resources about web development",
+          "CreatedAt": "2026-08-11T12:00:00.000Z",
+          "UpdatedAt": "2026-08-11T12:00:00.000Z"
+        }
+      }
+    },
+    {
+      "name": "List categories",
+      "method": "GET",
+      "endpoint": "/api/categories",
+      "requestBody": null,
+      "successStatus": 200,
+      "successResponse": {
+        "categories": []
+      }
+    },
+    {
+      "name": "Get category",
+      "method": "GET",
+      "endpoint": "/api/categories/:id",
+      "exampleEndpoint": "/api/categories/1",
+      "requestBody": null,
+      "successStatus": 200,
+      "successResponse": {
+        "category": {
+          "Id": 1,
+          "Name": "Web Development",
+          "Description": "Courses and resources about web development",
+          "CreatedAt": "2026-08-11T12:00:00.000Z",
+          "UpdatedAt": "2026-08-11T12:00:00.000Z"
+        }
+      }
+    },
+    {
+      "name": "Update category",
+      "method": "PUT",
+      "endpoint": "/api/categories/:id",
+      "exampleEndpoint": "/api/categories/1",
+      "requestBody": {
+        "name": "Frontend Development",
+        "description": "Updated category description"
+      },
+      "successStatus": 200,
+      "successResponse": {
+        "category": {
+          "Id": 1,
+          "Name": "Frontend Development",
+          "Description": "Updated category description",
+          "CreatedAt": "2026-08-11T12:00:00.000Z",
+          "UpdatedAt": "2026-08-11T13:00:00.000Z"
+        }
+      }
+    },
+    {
+      "name": "Delete category",
+      "method": "DELETE",
+      "endpoint": "/api/categories/:id",
+      "exampleEndpoint": "/api/categories/1",
+      "requestBody": null,
+      "successStatus": 200,
+      "successResponse": {
+        "message": "Category deleted"
+      }
+    }
+  ],
+  "errorResponses": {
+    "400": {
+      "message": "Validation error details"
+    },
+    "401": {
+      "message": "Bearer token is required"
+    },
+    "403": {
+      "message": "admin access is required"
+    },
+    "404": {
+      "message": "Category not found"
+    },
+    "409": {
+      "message": "Category name is already in use"
+    }
+  }
+}

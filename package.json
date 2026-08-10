@@ -7,7 +7,7 @@
 	"scripts": {
 		"start": "node app.js",
 		"dev": "nodemon app.js",
-		"check": "node --check app.js && node --check db/connect.js && node --check db/initialize.js && node --check lib/auth.js && node --check routes/auth.js && node --check routes/students.js && node --check scripts/init-db.js",
+		"check": "node --check app.js && node --check db/connect.js && node --check db/initialize.js && node --check lib/auth.js && node --check routes/auth.js && node --check routes/categories.js && node --check routes/students.js && node --check scripts/init-db.js",
 		"db:init": "node scripts/init-db.js"
 	},
 	"author": "",

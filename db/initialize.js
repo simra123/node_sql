@@ -30,6 +30,18 @@ BEGIN
     CONSTRAINT CK_Students_Role CHECK ([Role] = N'student')
   );
 END;
+
+IF OBJECT_ID(N'dbo.Categories', N'U') IS NULL
+BEGIN
+  CREATE TABLE dbo.Categories (
+    Id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    Name NVARCHAR(100) NOT NULL,
+    Description NVARCHAR(500) NULL,
+    CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_Categories_CreatedAt DEFAULT SYSUTCDATETIME(),
+    UpdatedAt DATETIME2 NOT NULL CONSTRAINT DF_Categories_UpdatedAt DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT UQ_Categories_Name UNIQUE (Name)
+  );
+END;
 `;
 
 export async function initializeDatabase(pool) {

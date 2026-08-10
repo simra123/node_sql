@@ -1,6 +1,6 @@
 # Student API (Fastify + Microsoft SQL Server)
 
-The API automatically creates `dbo.Admins` and `dbo.Students` when it starts. Passwords are hashed with bcrypt and authentication uses JWT bearer tokens.
+The API automatically creates `dbo.Admins`, `dbo.Students`, and `dbo.Categories` when it starts. Passwords are hashed with bcrypt and authentication uses JWT bearer tokens.
 
 ## Setup
 
@@ -53,3 +53,6 @@ The initial admin is inserted once, when no admin with `ADMIN_EMAIL` exists. The
 ```
 
 Both login endpoints return a signed JWT in `token`. Student passwords are never returned by the API.
+
+Category CRUD endpoints are admin-only and are documented in
+[`category-endpoints.json`](./category-endpoints.json).
