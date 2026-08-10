@@ -8,6 +8,10 @@ The API automatically creates `dbo.Admins` and `dbo.Students` when it starts. Pa
 2. Copy `.env.example` to `.env` and enter the database, JWT, and initial admin values.
 3. Run `npm install`, `npm run db:init`, then `npm start`.
 
+Browser requests are enabled through CORS. `CORS_ORIGIN` defaults to `*`; in
+production, set it to your frontend origin (or a comma-separated list), such as
+`https://app.example.com`.
+
 The initial admin is inserted once, when no admin with `ADMIN_EMAIL` exists. There is intentionally no public admin-registration endpoint.
 
 ## Endpoints

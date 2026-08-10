@@ -5,7 +5,8 @@ import { createToken } from "../lib/auth.js";
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function validateLogin(body) {
-  if (!body || typeof body.email !== "string" || !emailPattern.test(body.email)) {
+  console.log(body.email, typeof body.email);
+  if (!body || typeof body.email !== "string") {
     return "A valid email is required";
   }
 
@@ -22,8 +23,7 @@ async function login(reply, body, table, expectedRole) {
 
   const result = await getPool()
     .request()
-    .input("email", sql.NVarChar(255), body.email.trim().toLowerCase())
-    .query(`
+    .input("email", sql.NVarChar(255), body.email.trim().toLowerCase()).query(`
       SELECT Id, [Role], Name, Email, PasswordHash
       FROM dbo.${table}
       WHERE Email = @email AND [Role] = N'${expectedRole}'

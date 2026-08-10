@@ -6,7 +6,8 @@ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function validateStudent(body) {
   if (!body || body.role !== "student") return "Role must be student";
-  if (typeof body.name !== "string" || !body.name.trim()) return "Name is required";
+  if (typeof body.name !== "string" || !body.name.trim())
+    return "Name is required";
   if (body.name.trim().length > 100) return "Name cannot exceed 100 characters";
   if (typeof body.email !== "string" || !emailPattern.test(body.email)) {
     return "A valid email is required";
@@ -51,8 +52,7 @@ export default async function studentRoutes(fastify) {
         .input("name", sql.NVarChar(100), name.trim())
         .input("email", sql.NVarChar(255), normalizedEmail)
         .input("passwordHash", sql.NVarChar(255), passwordHash)
-        .input("department", sql.NVarChar(100), department.trim())
-        .query(`
+        .input("department", sql.NVarChar(100), department.trim()).query(`
           INSERT INTO dbo.Students ([Role], Name, Email, PasswordHash, Department)
           OUTPUT INSERTED.Id, INSERTED.[Role], INSERTED.Name,
                  INSERTED.Email, INSERTED.Department, INSERTED.CreatedAt

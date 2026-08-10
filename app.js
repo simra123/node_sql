@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import cors from "@fastify/cors";
 import "dotenv/config";
 import { fileURLToPath } from "node:url";
 import { connectDb } from "./db/connect.js";
@@ -9,6 +10,14 @@ import studentRoutes from "./routes/students.js";
 
 export function buildApp() {
   const app = Fastify({ logger: true });
+
+  const configuredOrigins = process.env.CORS_ORIGIN?.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  app.register(cors, {
+    origin: configuredOrigins?.length ? configuredOrigins : "*",
+  });
 
   app.get("/", async () => ({ message: "Student API is running" }));
   app.register(authRoutes, { prefix: "/api/auth" });
