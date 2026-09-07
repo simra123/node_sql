@@ -12,5 +12,5 @@ try {
   console.error(`Database initialization failed: ${error.message}`);
   process.exitCode = 1;
 } finally {
-  await pool?.close();
+  await pool?.end();
 }

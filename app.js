@@ -28,8 +28,8 @@ export function buildApp() {
   app.setErrorHandler((error, request, reply) => {
     request.log.error(error);
 
-    if (error.number === 2601 || error.number === 2627) {
-      if (error.message?.includes("UQ_Categories_Name")) {
+    if (error.code === "23505") {
+      if (error.constraint === "uq_categories_name") {
         return reply.code(409).send({ message: "Category name is already in use" });
       }
 
@@ -45,15 +45,18 @@ export function buildApp() {
 async function start() {
   try {
     validateJwtEnv();
+    console.log("Connecting to Neon database...");
     const pool = await connectDb();
+    console.log("Neon database connected. Initializing tables...");
     await initializeDatabase(pool);
+    console.log("Database initialization complete.");
 
     const app = buildApp();
     const port = Number(process.env.PORT || 4000);
     const host = process.env.HOST || "127.0.0.1";
     await app.listen({ port, host });
   } catch (error) {
-    console.error(error.message);
+    console.error("Server startup failed:", error);
     process.exitCode = 1;
   }
 }

@@ -1,8 +1,14 @@
 import bcrypt from "bcryptjs";
-import { getPool, sql } from "../db/connect.js";
+import { getPool } from "../db/connect.js";
 import { requireRole } from "../lib/auth.js";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const adminOnly = { preHandler: requireRole("admin") };
+
+function parseId(value) {
+  const id = Number(value);
+  return Number.isInteger(id) && id > 0 ? id : null;
+}
 
 function validateStudent(body) {
   if (!body || body.role !== "student") return "Role must be student";
@@ -24,42 +30,69 @@ function validateStudent(body) {
 }
 
 export default async function studentRoutes(fastify) {
-  fastify.post(
-    "/",
-    { preHandler: requireRole("admin") },
-    async (request, reply) => {
-      const validationError = validateStudent(request.body);
-      if (validationError) {
-        return reply.code(400).send({ message: validationError });
-      }
+  fastify.post("/", adminOnly, async (request, reply) => {
+    const validationError = validateStudent(request.body);
+    if (validationError) {
+      return reply.code(400).send({ message: validationError });
+    }
 
-      const { name, email, password, department } = request.body;
-      const normalizedEmail = email.trim().toLowerCase();
-      const pool = getPool();
+    const { name, email, password, department } = request.body;
+    const normalizedEmail = email.trim().toLowerCase();
+    const pool = getPool();
 
-      const duplicate = await pool
-        .request()
-        .input("email", sql.NVarChar(255), normalizedEmail)
-        .query("SELECT Id FROM dbo.Students WHERE Email = @email");
+    const duplicate = await pool.query(
+      "SELECT id FROM students WHERE email = $1",
+      [normalizedEmail],
+    );
 
-      if (duplicate.recordset.length > 0) {
-        return reply.code(409).send({ message: "Email is already in use" });
-      }
+    if (duplicate.rows.length > 0) {
+      return reply.code(409).send({ message: "Email is already in use" });
+    }
 
-      const passwordHash = await bcrypt.hash(password, 12);
-      const result = await pool
-        .request()
-        .input("name", sql.NVarChar(100), name.trim())
-        .input("email", sql.NVarChar(255), normalizedEmail)
-        .input("passwordHash", sql.NVarChar(255), passwordHash)
-        .input("department", sql.NVarChar(100), department.trim()).query(`
-          INSERT INTO dbo.Students ([Role], Name, Email, PasswordHash, Department)
-          OUTPUT INSERTED.Id, INSERTED.[Role], INSERTED.Name,
-                 INSERTED.Email, INSERTED.Department, INSERTED.CreatedAt
-          VALUES (N'student', @name, @email, @passwordHash, @department)
-        `);
+    const passwordHash = await bcrypt.hash(password, 12);
+    const result = await pool.query(
+      `
+          INSERT INTO students (role, name, email, password_hash, department)
+          VALUES ('student', $1, $2, $3, $4)
+          RETURNING id AS "Id", role AS "Role", name AS "Name",
+                    email AS "Email", department AS "Department",
+                    created_at AS "CreatedAt"
+        `,
+      [name.trim(), normalizedEmail, passwordHash, department.trim()],
+    );
 
-      return reply.code(201).send({ student: result.recordset[0] });
-    },
-  );
+    return reply.code(201).send({ student: result.rows[0] });
+  });
+
+  fastify.get("/", adminOnly, async () => {
+    const result = await getPool().query(`
+      SELECT id AS "Id", role AS "Role", name AS "Name",
+             email AS "Email", department AS "Department",
+             created_at AS "CreatedAt"
+      FROM students
+      ORDER BY created_at DESC, id DESC
+    `);
+
+    return { students: result.rows };
+  });
+
+  fastify.delete("/:id", adminOnly, async (request, reply) => {
+    const id = parseId(request.params.id);
+    if (!id) {
+      return reply.code(400).send({
+        message: "Student id must be a positive integer",
+      });
+    }
+
+    const result = await getPool().query(
+      'DELETE FROM students WHERE id = $1 RETURNING id AS "Id"',
+      [id],
+    );
+
+    if (result.rows.length === 0) {
+      return reply.code(404).send({ message: "Student not found" });
+    }
+
+    return { message: "Student deleted" };
+  });
 }

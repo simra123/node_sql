@@ -1,4 +1,4 @@
-import { getPool, sql } from "../db/connect.js";
+import { getPool } from "../db/connect.js";
 import { requireRole } from "../lib/auth.js";
 
 const adminOnly = { preHandler: requireRole("admin") };
@@ -41,16 +41,16 @@ function categoryValues(body) {
 }
 
 async function categoryNameExists(pool, name, excludedId) {
-  const request = pool.request().input("name", sql.NVarChar(100), name);
-  let query = "SELECT Id FROM dbo.Categories WHERE Name = @name";
+  const values = [name];
+  let query = "SELECT id FROM categories WHERE name = $1";
 
   if (excludedId !== undefined) {
-    request.input("excludedId", sql.Int, excludedId);
-    query += " AND Id <> @excludedId";
+    values.push(excludedId);
+    query += " AND id <> $2";
   }
 
-  const result = await request.query(query);
-  return result.recordset.length > 0;
+  const result = await pool.query(query, values);
+  return result.rows.length > 0;
 }
 
 export default async function categoryRoutes(fastify) {
@@ -67,27 +67,28 @@ export default async function categoryRoutes(fastify) {
       return reply.code(409).send({ message: "Category name is already in use" });
     }
 
-    const result = await pool
-      .request()
-      .input("name", sql.NVarChar(100), name)
-      .input("description", sql.NVarChar(500), description).query(`
-        INSERT INTO dbo.Categories (Name, Description)
-        OUTPUT INSERTED.Id, INSERTED.Name, INSERTED.Description,
-               INSERTED.CreatedAt, INSERTED.UpdatedAt
-        VALUES (@name, @description)
-      `);
+    const result = await pool.query(
+      `
+        INSERT INTO categories (name, description)
+        VALUES ($1, $2)
+        RETURNING id AS "Id", name AS "Name", description AS "Description",
+                  created_at AS "CreatedAt", updated_at AS "UpdatedAt"
+      `,
+      [name, description],
+    );
 
-    return reply.code(201).send({ category: result.recordset[0] });
+    return reply.code(201).send({ category: result.rows[0] });
   });
 
   fastify.get("/", adminOnly, async () => {
-    const result = await getPool().request().query(`
-      SELECT Id, Name, Description, CreatedAt, UpdatedAt
-      FROM dbo.Categories
-      ORDER BY Name ASC
+    const result = await getPool().query(`
+      SELECT id AS "Id", name AS "Name", description AS "Description",
+             created_at AS "CreatedAt", updated_at AS "UpdatedAt"
+      FROM categories
+      ORDER BY name ASC
     `);
 
-    return { categories: result.recordset };
+    return { categories: result.rows };
   });
 
   fastify.get("/:id", adminOnly, async (request, reply) => {
@@ -96,20 +97,21 @@ export default async function categoryRoutes(fastify) {
       return reply.code(400).send({ message: "Category id must be a positive integer" });
     }
 
-    const result = await getPool()
-      .request()
-      .input("id", sql.Int, id)
-      .query(`
-        SELECT Id, Name, Description, CreatedAt, UpdatedAt
-        FROM dbo.Categories
-        WHERE Id = @id
-      `);
+    const result = await getPool().query(
+      `
+        SELECT id AS "Id", name AS "Name", description AS "Description",
+               created_at AS "CreatedAt", updated_at AS "UpdatedAt"
+        FROM categories
+        WHERE id = $1
+      `,
+      [id],
+    );
 
-    if (result.recordset.length === 0) {
+    if (result.rows.length === 0) {
       return reply.code(404).send({ message: "Category not found" });
     }
 
-    return { category: result.recordset[0] };
+    return { category: result.rows[0] };
   });
 
   fastify.put("/:id", adminOnly, async (request, reply) => {
@@ -130,25 +132,24 @@ export default async function categoryRoutes(fastify) {
       return reply.code(409).send({ message: "Category name is already in use" });
     }
 
-    const result = await pool
-      .request()
-      .input("id", sql.Int, id)
-      .input("name", sql.NVarChar(100), name)
-      .input("description", sql.NVarChar(500), description).query(`
-        UPDATE dbo.Categories
-        SET Name = @name,
-            Description = @description,
-            UpdatedAt = SYSUTCDATETIME()
-        OUTPUT INSERTED.Id, INSERTED.Name, INSERTED.Description,
-               INSERTED.CreatedAt, INSERTED.UpdatedAt
-        WHERE Id = @id
-      `);
+    const result = await pool.query(
+      `
+        UPDATE categories
+        SET name = $2,
+            description = $3,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1
+        RETURNING id AS "Id", name AS "Name", description AS "Description",
+                  created_at AS "CreatedAt", updated_at AS "UpdatedAt"
+      `,
+      [id, name, description],
+    );
 
-    if (result.recordset.length === 0) {
+    if (result.rows.length === 0) {
       return reply.code(404).send({ message: "Category not found" });
     }
 
-    return { category: result.recordset[0] };
+    return { category: result.rows[0] };
   });
 
   fastify.delete("/:id", adminOnly, async (request, reply) => {
@@ -157,12 +158,12 @@ export default async function categoryRoutes(fastify) {
       return reply.code(400).send({ message: "Category id must be a positive integer" });
     }
 
-    const result = await getPool()
-      .request()
-      .input("id", sql.Int, id)
-      .query("DELETE FROM dbo.Categories OUTPUT DELETED.Id WHERE Id = @id");
+    const result = await getPool().query(
+      "DELETE FROM categories WHERE id = $1 RETURNING id AS \"Id\"",
+      [id],
+    );
 
-    if (result.recordset.length === 0) {
+    if (result.rows.length === 0) {
       return reply.code(404).send({ message: "Category not found" });
     }
 

@@ -41,6 +41,18 @@ The initial admin is inserted once, when no admin with `ADMIN_EMAIL` exists. The
 }
 ```
 
+### List students (admin only)
+
+`GET /api/students` with `Authorization: Bearer <admin-token>`
+
+Returns all students without their password hashes.
+
+### Delete student (admin only)
+
+`DELETE /api/students/:id` with `Authorization: Bearer <admin-token>`
+
+For example, `DELETE /api/students/1`.
+
 ### Student login
 
 `POST /api/auth/student/login`
