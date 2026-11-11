@@ -8,6 +8,7 @@ import { validateJwtEnv } from "./lib/auth.js";
 import authRoutes from "./routes/auth.js";
 import categoryRoutes from "./routes/categories.js";
 import studentRoutes from "./routes/students.js";
+import bookRoutes from "./routes/book.js";
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -24,13 +25,16 @@ export function buildApp() {
   app.register(authRoutes, { prefix: "/api/auth" });
   app.register(categoryRoutes, { prefix: "/api/categories" });
   app.register(studentRoutes, { prefix: "/api/students" });
+  app.register(bookRoutes, { prefix: "/api/books" });
 
   app.setErrorHandler((error, request, reply) => {
     request.log.error(error);
 
     if (error.code === "23505") {
       if (error.constraint === "uq_categories_name") {
-        return reply.code(409).send({ message: "Category name is already in use" });
+        return reply
+          .code(409)
+          .send({ message: "Category name is already in use" });
       }
 
       return reply.code(409).send({ message: "Email is already in use" });
